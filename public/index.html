@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="ta"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Video Share</title>
+<style>
+body{font-family:system-ui,sans-serif;max-width:480px;margin:0 auto;padding:20px;background:#f6f7f8;color:#111}
+h1{font-size:22px}
+.card{background:#fff;border-radius:14px;padding:18px;box-shadow:0 1px 4px #0002}
+input,button{width:100%;box-sizing:border-box;padding:12px;margin-top:10px;font-size:16px;border-radius:10px;border:1px solid #ccc}
+button{background:#25d366;border:0;font-weight:600;cursor:pointer}
+button:disabled{opacity:.5}
+progress{width:100%;margin-top:12px;display:none}
+#out{display:none;margin-top:14px;word-break:break-all}
+a.wa{display:block;text-align:center;margin-top:10px;padding:12px;background:#128c7e;color:#fff;border-radius:10px;text-decoration:none;font-weight:600}
+</style></head><body>
+<h1>🎬 Original Quality Video Share</h1>
+<div class="card">
+  <input type="password" id="pw" placeholder="Password (இருந்தால்)">
+  <input type="file" id="file" accept="video/*">
+  <button id="go">Upload பண்ணு</button>
+  <progress id="bar" max="100" value="0"></progress>
+  <div id="msg"></div>
+  <div id="out">
+    <div id="link"></div>
+    <button id="copy">Link copy பண்ணு</button>
+    <a class="wa" id="wa" target="_blank">WhatsApp-ல அனுப்பு</a>
+  </div>
+</div>
+<script>
+const $ = id => document.getElementById(id);
+$('go').onclick = () => {
+  const f = $('file').files[0];
+  if (!f) { $('msg').textContent = 'முதல்ல video தேர்ந்தெடுங்க'; return; }
+  const fd = new FormData(); fd.append('video', f);
+  const x = new XMLHttpRequest();
+  x.open('POST', '/upload?pw=' + encodeURIComponent($('pw').value));
+  $('go').disabled = true; $('bar').style.display = 'block'; $('msg').textContent = '';
+  x.upload.onprogress = e => { if (e.lengthComputable) $('bar').value = e.loaded / e.total * 100; };
+  x.onload = () => {
+    $('go').disabled = false;
+    let r = {}; try { r = JSON.parse(x.responseText); } catch (e) {}
+    if (x.status !== 200) { $('msg').textContent = r.error === 'WRONG_PASSWORD' ? 'Password தப்பு' : 'Upload fail ஆச்சு'; return; }
+    $('link').textContent = r.link;
+    $('wa').href = 'https://wa.me/?text=' + encodeURIComponent(r.link);
+    $('out').style.display = 'block';
+    $('copy').onclick = () => navigator.clipboard.writeText(r.link).then(() => $('copy').textContent = 'Copy ஆச்சு ✓');
+  };
+  x.onerror = () => { $('go').disabled = false; $('msg').textContent = 'Network error'; };
+  x.send(fd);
+};
+</script></body></html>
